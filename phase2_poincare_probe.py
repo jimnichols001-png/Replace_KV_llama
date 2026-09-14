@@ -81,6 +81,27 @@ ACTIVE_R = 0.9          # contracted radii <= this count as "active volume"
 
 
 # ============================================================================
+# 0. torch-2.5.x SDPA GQA regression workaround.
+# On this Windows build, SDPA with `enable_gqa=True` silently falls back to the
+# fp32 MATH backend during PREFILL (q_len > 1): it materializes
+# [n_heads, seq, seq] float32 attention (~32 GiB at 16K context), OOMing on
+# any context beyond ~5K tokens.  Decode (q_len=1) is fine -- only prefill.
+# Forcing GQA-in-SDPA OFF routes attention through the repeat-kv expansion
+# (KV heads 8 -> 32) and the memory-bounded flash/mem_efficient kernels, which
+# are the path this repo measured (bounded ~1/2 GB even at 64K context).
+# ============================================================================
+def _disable_gqa_in_sdpa():
+    try:
+        import transformers.integrations.sdpa_attention as _sdpa
+        _sdpa.use_gqa_in_sdpa = lambda attention_mask, key: False
+    except Exception:
+        pass
+
+
+_disable_gqa_in_sdpa()
+
+
+# ============================================================================
 # 1. THE FIXED GEOMETRY  (the entire "metric injection" -- no weights trained)
 # ============================================================================
 def project(h: torch.Tensor) -> torch.Tensor:
