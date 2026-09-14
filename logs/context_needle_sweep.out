@@ -1,0 +1,35 @@
+[load] llama32-1B-fp16  (fp16, frozen, layer hooks ['4', '8', '12', '16'])
+Loading weights:   0%|          | 0/146 [00:00<?, ?it/s]Loading weights:   1%|          | 1/146 [00:00<00:14,  9.82it/s]Loading weights:  33%|███▎      | 48/146 [00:00<00:00, 274.64it/s]Loading weights:  64%|██████▍   | 94/146 [00:00<00:00, 352.29it/s]Loading weights:  95%|█████████▌| 139/146 [00:00<00:00, 388.55it/s]Loading weights: 100%|██████████| 146/146 [00:00<00:00, 348.30it/s]
+[transformers] Ignoring clean_up_tokenization_spaces=True for BPE tokenizer TokenizersBackend. The clean_up_tokenization post-processing step is designed for WordPiece tokenizers and is destructive for BPE (it strips spaces before punctuation). Set clean_up_tokenization_spaces=False to suppress this warning, or set clean_up_tokenization_spaces_for_bpe_even_though_it_will_corrupt_output=True to force cleanup anyway.
+[transformers] Both `max_new_tokens` (=8) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+[transformers] Both `max_new_tokens` (=24) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+[transformers] Both `max_new_tokens` (=8) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+[transformers] Both `max_new_tokens` (=24) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+[transformers] Both `max_new_tokens` (=8) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+[transformers] Both `max_new_tokens` (=24) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+[transformers] Both `max_new_tokens` (=8) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+[transformers] Both `max_new_tokens` (=24) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+[transformers] Both `max_new_tokens` (=8) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+[transformers] Both `max_new_tokens` (=24) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+[transformers] Both `max_new_tokens` (=8) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+[transformers] Both `max_new_tokens` (=24) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+[transformers] Both `max_new_tokens` (=8) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+[transformers] Both `max_new_tokens` (=24) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+[transformers] Both `max_new_tokens` (=8) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+[transformers] Both `max_new_tokens` (=24) and `max_length`(=131072) seem to have been set. `max_new_tokens` will take precedence. Please refer to the documentation for more information. (https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)
+[probe] clamping monitored layer 16 -> 15 (16-layer stack)
+[load] 2.2s  1.236B  hidden=2048  monitored=[4, 8, 12, 15]
+[needle] depth=0.5 needle='The magic number is 42813.' layers=[4, 8, 12, 15] alpha-contraction active
+    size    mode  ok?   peakMB   wall_s    nCtx   dPL15  walkL15  cosL15  mobL15  bounded
+    4096 poincare    F   2940.7     2.98    4154    4.05     4.05   0.963   0.966      yes
+    4096   stock    F   2889.1     0.99             nan      nan     nan     nan      n/a
+   16384 poincare    F   4296.8     5.15   16381    3.53     3.53   0.980   0.943      yes
+   16384   stock    F   4095.4     4.39             nan      nan     nan     nan      n/a
+   32768 poincare    F   6106.5    27.40   32673    3.04     3.04   0.990   0.909      yes
+   32768   stock    F   5704.3    25.47             nan      nan     nan     nan      n/a
+   65536 poincare    F   9718.0    92.51   65259    3.56     3.56   0.982   0.945      yes
+   65536   stock    F   8916.0    73.02             nan      nan     nan     nan      n/a
+
+[log] logs/context_needle.jsonl
+  retrieval acc[poincare]: 4096:0%, 16384:0%, 32768:0%, 65536:0%
+  retrieval acc[stock]: 4096:0%, 16384:0%, 32768:0%, 65536:0%

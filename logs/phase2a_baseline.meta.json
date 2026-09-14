@@ -1,0 +1,196 @@
+{
+  "header": {
+    "schema": "phase2.probe.v2",
+    "model": "/home/bedroom_pc/Replace_KV_llama/llama32-1B-fp16",
+    "layers": [
+      4,
+      8,
+      12,
+      15
+    ],
+    "alpha": 0.85,
+    "seed": 0,
+    "sampling": "--script /home/bedroom_pc/Replace_KV_llama/tests/demo_turns.json",
+    "script": "/home/bedroom_pc/Replace_KV_llama/tests/demo_turns.json",
+    "system": "",
+    "max_new_tokens": 64,
+    "do_sample": false
+  },
+  "n_turns": 3,
+  "final": {
+    "4": {
+      "dP_T0_Tn": 2.552577603939694,
+      "dP_walk": 4.242624054976956,
+      "u_radius": 0.7255914211273193,
+      "a_radius": 0.7410037517547607,
+      "prefill_max_radius": 0.9987364411354065,
+      "bounded": true,
+      "contraction": {
+        "alpha": 0.85,
+        "r_max_raw": 0.9987364411354065,
+        "r_max_alpha": 0.8489259749650955,
+        "r_bos_raw": 0.9987364411354065,
+        "r_bos_alpha": 0.8489259749650955,
+        "margin_from_boundary": 0.15107402503490452,
+        "active": true
+      },
+      "cos_raw_T0_Tn": 0.4247193932533264
+    },
+    "8": {
+      "dP_T0_Tn": 3.022292517101615,
+      "dP_walk": 5.375015449694955,
+      "u_radius": 0.7809259295463562,
+      "a_radius": 0.7892863154411316,
+      "prefill_max_radius": 0.9987419247627258,
+      "bounded": true,
+      "contraction": {
+        "alpha": 0.85,
+        "r_max_raw": 0.9987419247627258,
+        "r_max_alpha": 0.848930636048317,
+        "r_bos_raw": 0.9987419247627258,
+        "r_bos_alpha": 0.848930636048317,
+        "margin_from_boundary": 0.15106936395168302,
+        "active": true
+      },
+      "cos_raw_T0_Tn": 0.4203665256500244
+    },
+    "12": {
+      "dP_T0_Tn": 4.313229791842609,
+      "dP_walk": 7.8292717697332925,
+      "u_radius": 0.8823010921478271,
+      "a_radius": 0.8884121179580688,
+      "prefill_max_radius": 0.9987438917160034,
+      "bounded": true,
+      "contraction": {
+        "alpha": 0.85,
+        "r_max_raw": 0.9987438917160034,
+        "r_max_alpha": 0.8489323079586029,
+        "r_bos_raw": 0.9987438917160034,
+        "r_bos_alpha": 0.8489323079586029,
+        "margin_from_boundary": 0.15106769204139714,
+        "active": true
+      },
+      "cos_raw_T0_Tn": 0.32872816920280457
+    },
+    "15": {
+      "dP_T0_Tn": 6.289520751673821,
+      "dP_walk": 11.715909311955098,
+      "u_radius": 0.9531840682029724,
+      "a_radius": 0.9470540285110474,
+      "prefill_max_radius": 0.9968008995056152,
+      "bounded": true,
+      "contraction": {
+        "alpha": 0.85,
+        "r_max_raw": 0.9968008995056152,
+        "r_max_alpha": 0.847280764579773,
+        "r_bos_raw": 0.9968008995056152,
+        "r_bos_alpha": 0.847280764579773,
+        "margin_from_boundary": 0.15271923542022703,
+        "active": true
+      },
+      "cos_raw_T0_Tn": 0.1410057544708252
+    }
+  },
+  "q1_native_manifold_drift": {
+    "layers": [
+      4,
+      8,
+      12,
+      15
+    ],
+    "observation": "BOS pos-0 norm ~800 pins to the boundary shell (r~0.999) at every monitored depth while content tokens sit at r~0.78-0.87; alpha=0.85 contraction pulls the shell into the active volume (r<=0.9)."
+  },
+  "q2_working_memory_trajectory": {
+    "layers": [
+      4,
+      8,
+      12,
+      15
+    ],
+    "dP_T0_Tn_series": {
+      "4": [
+        0.00141421344446382,
+        2.450975946602759,
+        2.552577603939694
+      ],
+      "8": [
+        0.00141421344446382,
+        3.0464763915550623,
+        3.022292517101615
+      ],
+      "12": [
+        0.00141421344446382,
+        4.305520096133929,
+        4.313229791842609
+      ],
+      "15": [
+        0.00141421344446382,
+        6.376250537655659,
+        6.289520751673821
+      ]
+    },
+    "dP_walk_series": {
+      "4": [
+        0.00141421344446382,
+        2.452390160047223,
+        4.242624054976956
+      ],
+      "8": [
+        0.00141421344446382,
+        3.0478906049995262,
+        5.375015449694955
+      ],
+      "12": [
+        0.00141421344446382,
+        4.306934309578392,
+        7.8292717697332925
+      ],
+      "15": [
+        0.00141421344446382,
+        6.377664751100123,
+        11.715909311955098
+      ]
+    },
+    "dP_T0_Tn_alpha_series": {
+      "4": [
+        0.00141421344446382,
+        1.7700751290467445,
+        1.8620465530888006
+      ],
+      "8": [
+        0.00141421344446382,
+        2.134211617554923,
+        2.1297363485078566
+      ],
+      "12": [
+        0.00141421344446382,
+        2.805558491290359,
+        2.8092049644524013
+      ],
+      "15": [
+        0.00141421344446382,
+        3.6101864700915054,
+        3.611620747507185
+      ]
+    }
+  },
+  "q3_ablation_baseline": {
+    "protocol": "greedy deterministic + scripted turns -> this JSONL",
+    "script_feeds": "/home/bedroom_pc/Replace_KV_llama/tests/demo_turns.json",
+    "schema": "phase2.probe.v2",
+    "layers": [
+      4,
+      8,
+      12,
+      15
+    ],
+    "alpha": 0.85,
+    "diff_keys": [
+      "dP_T0_Tn",
+      "dP_walk",
+      "cos_raw_T0_Tn",
+      "prefill_radius.max",
+      "mobius_norm"
+    ]
+  }
+}

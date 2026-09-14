@@ -1,0 +1,40 @@
+{
+  "header": {
+    "schema": "phase2.probe.v1",
+    "model": "/home/bedroom_pc/Replace_KV_llama/llama32-1B-fp16",
+    "layer": 8,
+    "seed": 0,
+    "sampling": "--script tests/demo_turns.json",
+    "script": "tests/demo_turns.json",
+    "system": "",
+    "max_new_tokens": 64,
+    "do_sample": false
+  },
+  "n_turns": 3,
+  "final": {
+    "dP_T0_Tn": 3.022292517101615,
+    "dP_walk": 5.375015449694955,
+    "last_u_radius": 0.7809259295463562,
+    "last_prefill_max_radius": 0.9987419247627258,
+    "bounded": true,
+    "cos_raw_T0_Tn": 0.4203665256500244
+  },
+  "q1_native_manifold_drift": "stock layer-8 projected radius profile per turn (rmin/rmax/rmean) + raw ||h8|| and cos(T0,Tn); see DONE in PHASE2.md",
+  "q2_working_memory_trajectory": {
+    "dP_T0_Tn_series": [
+      0.00141421344446382,
+      3.0464763915550623,
+      3.022292517101615
+    ],
+    "dP_walk_series": [
+      0.00141421344446382,
+      3.0478906049995262,
+      5.375015449694955
+    ]
+  },
+  "q3_ablation_baseline": {
+    "protocol": "greedy deterministic + scripted turns -> this JSONL",
+    "script_feeds": "tests/demo_turns.json",
+    "schema": "phase2.probe.v1"
+  }
+}

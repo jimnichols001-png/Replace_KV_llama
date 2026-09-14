@@ -1,0 +1,9 @@
+# model weights (2.4 GB) — never committed
+llama32-1B-fp16/
+
+# python
+__pycache__/
+*.pyc
+
+# transient diagnostic artifacts
+logs/scratch/

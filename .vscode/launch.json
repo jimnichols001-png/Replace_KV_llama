@@ -1,0 +1,64 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Interactive REPL (Phase 2A)",
+      "type": "python",
+      "request": "launch",
+      "python": "/home/bedroom_pc/miniconda3/envs/sandbox_env/bin/python",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/phase2_poincare_probe.py",
+      "args": [
+        "--cache-dir", "llama32-1B-fp16",
+        "--layers", "4,8,12,16",
+        "--alpha", "0.85",
+        "--temperature", "0.6",
+        "--top-p", "0.9",
+        "--max-new-tokens", "64",
+        "--log-prefix", "logs/phase2a_repl"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "stopOnEntry": false
+    },
+    {
+      "name": "Deterministic Baseline Sweep",
+      "type": "python",
+      "request": "launch",
+      "python": "/home/bedroom_pc/miniconda3/envs/sandbox_env/bin/python",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/phase2_poincare_probe.py",
+      "args": [
+        "--cache-dir", "llama32-1B-fp16",
+        "--layers", "4,8,12,16",
+        "--alpha", "0.85",
+        "--script", "tests/demo_turns.json",
+        "--max-new-tokens", "64",
+        "--log-prefix", "logs/phase2a_baseline"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "stopOnEntry": false
+    },
+    {
+      "name": "Vector Snapshot Dump",
+      "type": "python",
+      "request": "launch",
+      "python": "/home/bedroom_pc/miniconda3/envs/sandbox_env/bin/python",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/phase2_poincare_probe.py",
+      "args": [
+        "--cache-dir", "llama32-1B-fp16",
+        "--layers", "4,8,12,16",
+        "--script", "tests/demo_turns.json",
+        "--max-new-tokens", "16",
+        "--max-turns", "2",
+        "--save-vectors",
+        "--log-prefix", "logs/vec_dump"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "stopOnEntry": false
+    }
+  ]
+}
