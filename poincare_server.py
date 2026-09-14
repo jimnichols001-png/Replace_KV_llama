@@ -13,17 +13,26 @@ fixed-projection pipeline Jim already validated, exposed over HTTP.
   the thing that persists is the Poincare state the Phase-3 engine consumes.
 * Endpoints:
     GET  /v1/models            -> list {id: "llama32-1B-p2a"}
+    GET  /v1/chat/completions  -> the chat page (open this URL in a browser
+                                  to start a web session; / redirects here)
     POST /v1/chat/completions  -> OpenAI-compatible response (+ metrics)
 * Non-standard fields (optional, on the chat request object):
     session_id       str    default "default"
     reset            bool   wipe the session's history + Poincare state
+    stop_token_ids   list[int]  extra hard stop token ids (default Llama-3
+                                [128001 <|end_of_text|>, 128009 <|eot_id|>])
+    stop             list[str]  extra text stops (default Llama-3 eot/header
+                                markers), enforced on the token stream
     include_metrics  bool   attach the per-layer dP/radius/Mó​bius row to the reply
 
 Run:
-    python poincare_server.py --cache-dir llama32-1B-fp16 --layers 4,8,12,16 \
+    python poincare_server.py --cache-dir llama32-1B-Instruct-bf16 --layers 4,8,12,16 \
         --alpha 0.85 --port 8000
+    Probe rows are flushed, one JSON per line, to logs/server_<timestamp>.jsonl
+    (override with --log-file); stdout never carries JSON, only the banner.
 """
 import argparse
+import json
 import os
 import time
 import uuid
@@ -31,12 +40,23 @@ import uuid
 import torch
 import uvicorn
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
 import phase2_poincare_probe as P2
 
 MODEL_ID = "llama32-1B-p2a"
 DEFAULT_SAMPLE = dict(temperature=0.6, top_p=0.9, top_k=0)
+
+# Llama-3 explicit stop configuration (see DepthProbe.run_turn for how these
+# are enforced: eos_token_id hard stops + token-stream clamping).
+LLAMA3_STOP_TOKEN_IDS = [128001, 128009]      # <|end_of_text|>, <|eot_id|>
+LLAMA3_STOP_STRINGS = ["<|eot_id|>", "<|end_of_text|>", "<|start_header_id|>"]
+
+# the in-browser chat page (GET / and GET /v1/chat/completions); POST on
+# /v1/chat/completions stays the OpenAI-compatible JSON API.
+CHAT_PAGE = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                              "web_chat.html"), encoding="utf-8").read()
 
 app = FastAPI(title="Poincare KV Memory Server (Phase 2A)",
               version="0.1.0", docs_url="/docs")
@@ -57,6 +77,8 @@ class ChatRequest(BaseModel):
     session_id: str = "default"
     reset: bool = False
     include_metrics: bool = False
+    stop_token_ids: list[int] | None = None
+    stop: list[str] | None = None
 
 
 # --------------------------------------------------------------------------
@@ -101,7 +123,7 @@ def run_turn(sess: Session, user_text: str, gen_kwargs: dict):
 
 def json_safe(obj):
     """Recursively replace non-finite floats (NaN/Inf, e.g. turn-1 inflation)
-    with None so FastAPI's strict JSON encoder accepts the metrics row."""
+    with None so the strict JSON encoders accept the metrics row."""
     if isinstance(obj, float):
         import math
         return None if not math.isfinite(obj) else obj
@@ -110,6 +132,23 @@ def json_safe(obj):
     if isinstance(obj, list):
         return [json_safe(v) for v in obj]
     return obj
+
+
+def log_row(row, body):
+    """Append one turn's probe row to the server's .jsonl (best effort --
+    logging failures must never break the API response).  Probe JSON lives in
+    this file exclusively; stdout carries nothing but the response payload."""
+    f = S.get("jsonl")
+    if f is None or row is None:
+        return
+    try:
+        rec = {"ts": int(time.time()), "session_id": body.session_id,
+               "model": body.model or MODEL_ID}
+        rec.update(json_safe(row))
+        f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+        f.flush()
+    except Exception:
+        pass
 
 
 # --------------------------------------------------------------------------
@@ -129,6 +168,17 @@ def models():
     }
 
 
+@app.get("/v1/chat/completions", response_class=HTMLResponse)
+def chat_page():
+    """Browser chat session: GET renders the UI, POST runs a turn."""
+    return CHAT_PAGE.replace("{{MODEL_ID}}", MODEL_ID)
+
+
+@app.get("/", response_class=HTMLResponse)
+def index():
+    return RedirectResponse(url="/v1/chat/completions")
+
+
 @app.post("/v1/chat/completions")
 def chat_completions(body: ChatRequest):
     if body.reset or body.session_id not in S["sessions"]:
@@ -145,7 +195,10 @@ def chat_completions(body: ChatRequest):
                       top_p=body.top_p if body.top_p is not None
                       else DEFAULT_SAMPLE["top_p"],
                       top_k=body.top_k if body.top_k is not None
-                      else DEFAULT_SAMPLE["top_k"])
+                      else DEFAULT_SAMPLE["top_k"],
+                      stop_token_ids=body.stop_token_ids
+                      or LLAMA3_STOP_TOKEN_IDS,
+                      stop_strings=body.stop or LLAMA3_STOP_STRINGS)
 
     last_reply = ""
     last_row = None
@@ -159,6 +212,7 @@ def chat_completions(body: ChatRequest):
             sess.tr.set_system(content)
             continue
         last_reply, last_row = run_turn(sess, content, gen_kwargs)
+        log_row(last_row, body)
 
     resp = {
         "id": f"chatcmpl-{uuid.uuid4().hex[:12]}",
@@ -185,14 +239,17 @@ def chat_completions(body: ChatRequest):
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawTextHelpFormatter)
-    ap.add_argument("--cache-dir", default="./llama32-1B-fp16")
+    ap.add_argument("--cache-dir", default="./llama32-1B-Instruct-bf16")
     ap.add_argument("--layers", default="4,8,12,16")
     ap.add_argument("--alpha", type=float, default=0.85)
     ap.add_argument("--system", default="")
-    ap.add_argument("--max-new-tokens", type=int, default=64)
+    ap.add_argument("--max-new-tokens", type=int, default=512)
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=8000)
     ap.add_argument("--device", default=None)
+    ap.add_argument("--log-file", default=None,
+                    help="jsonl file to append probe rows "
+                         "(default logs/server_<timestamp>.jsonl)")
     args = ap.parse_args()
 
     device = torch.device(args.device or
@@ -204,7 +261,13 @@ def main():
     S["system"] = args.system
     S["default_max_new_tokens"] = args.max_new_tokens
     S["sessions"] = {}
+    os.makedirs("logs", exist_ok=True)
+    log_path = args.log_file or \
+        f"logs/server_{time.strftime('%Y%m%d_%H%M%S')}.jsonl"
+    S["jsonl"] = open(log_path, "a", encoding="utf-8")
+    print(f"[server] probe rows -> {log_path}")
     print(f"[server] {MODEL_ID} | layers {S['layers']} | alpha {S['alpha']} "
+          f"| stop_ids {LLAMA3_STOP_TOKEN_IDS} | stop {LLAMA3_STOP_STRINGS} "
           f"| docs at /docs | http://{args.host}:{args.port}/v1/chat/completions")
     uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
 

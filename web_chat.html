@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Poincare KV Chat (Phase 2A)</title>
+<style>
+html,body{height:100%;margin:0;background:#10141f;color:#e6e6e6;font:14px/1.45 system-ui,sans-serif}
+#wrap{max-width:880px;margin:0 auto;padding:16px;height:calc(100% - 32px);display:flex;flex-direction:column;gap:8px}
+#head h1{font-size:16px;margin:0 0 4px}
+#meta{font-size:12px;color:#9fb3d0}
+#log{flex:1;overflow-y:auto;border:1px solid #26304a;border-radius:10px;background:#151b2b;padding:12px}
+.msg{margin:6px 0;padding:8px 12px;border-radius:8px;white-space:pre-wrap;word-break:break-word}
+.user{background:#1c3560}
+.assistant{background:#22304a}
+.err{background:#431d1d;color:#ffb4b4}
+.msg b{color:#8fb4ff;display:block;margin-bottom:4px}
+.msg pre{margin:8px 0;padding:6px 8px;background:#0d1117;font-size:11px;overflow-x:auto;color:#7fd9a0}
+#bar{display:flex;gap:8px}
+#inp{flex:1;resize:none;padding:8px;border:1px solid #26304a;border-radius:8px;background:#0d1117;color:#e6e6e6}
+#send{padding:8px 16px;border:0;border-radius:8px;background:#2d5db8;color:#fff;cursor:pointer}
+#send:disabled{opacity:.5}
+#status{font-size:12px;color:#7fd9a0}
+.rowbtns{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.rowbtns button{font-size:12px;background:#22304a;color:#c9d6e8;border:1px solid #26304a;border-radius:6px;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="head">
+    <h1>Poincare KV Memory Server &mdash; Chat</h1>
+    <div id="meta">model: <b>{{MODEL_ID}}</b> &nbsp; session: <span id="sid"></span>
+      <span id="status"></span></div>
+  </div>
+  <div id="log"></div>
+  <div class="rowbtns">
+    <button id="btnReset">reset session</button>
+    <label style="font-size:12px"><input type="checkbox" id="metrics"> show metrics</label>
+  </div>
+  <form id="bar" onsubmit="return send()">
+    <textarea id="inp" rows="3" placeholder="Message the model&hellip;"></textarea>
+    <button id="send" type="submit">Send</button>
+  </form>
+</div>
+<script>
+(function(){
+"use strict";
+var KEY="poincare_session_id";
+var sid=localStorage.getItem(KEY)||"sess_"+Math.random().toString(36).slice(2,10);
+localStorage.setItem(KEY,sid);
+document.getElementById("sid").textContent=sid;
+var logEl=document.getElementById("log");
+var statusEl=document.getElementById("status");
+var history=[];
+var busy=false;
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function addMsg(role,content,extra){
+  var d=document.createElement("div");
+  d.className="msg "+role;
+  var who=role==="user"?"You":(role==="err"?"Error":"Assistant");
+  d.innerHTML="<b>"+who+"</b>"+esc(content);
+  if(extra){var pre=document.createElement("pre");pre.textContent=extra;d.appendChild(pre);}
+  logEl.appendChild(d);
+  logEl.scrollTop=logEl.scrollHeight;
+}
+async function call(body){
+  var r=await fetch("/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  var j=await r.json();
+  if(!r.ok){throw new Error(j&&j.detail?j.detail:("HTTP "+r.status));}
+  return j;
+}
+function send(){
+  var inp=document.getElementById("inp");
+  var text=inp.value.trim();
+  if(!text||busy)return false;
+  busy=true;
+  document.getElementById("send").disabled=true;
+  statusEl.textContent="\u2026 generating";
+  addMsg("user",text);
+  history.push({role:"user",content:text});
+  inp.value="";
+  var want=document.getElementById("metrics").checked;
+  call({model:"{{MODEL_ID}}",messages:history,session_id:sid,include_metrics:want})
+   .then(function(j){
+     var content=(j.choices&&j.choices.length)?j.choices[0].message.content:"(empty reply)";
+     addMsg("assistant",content,want&&j.metrics?JSON.stringify(j.metrics,null,2):"");
+     history.push({role:"assistant",content:content});
+     statusEl.textContent="ok";
+   }).catch(function(e){
+     addMsg("err",e.message||String(e));
+     statusEl.textContent="error";
+   }).finally(function(){
+     busy=false;
+     document.getElementById("send").disabled=false;
+   });
+  return false;
+}
+function resetSession(){
+  call({model:"{{MODEL_ID}}",messages:[],session_id:sid,reset:true})
+   .then(function(){history=[];logEl.innerHTML="";statusEl.textContent="session reset";})
+   .catch(function(e){statusEl.textContent="reset failed: "+(e.message||e);});
+}
+document.getElementById("btnReset").onclick=resetSession;
+document.getElementById("inp").addEventListener("keydown",function(ev){
+  if(ev.key==="Enter"&&!ev.shiftKey){ev.preventDefault();send();}
+});
+window.send=send;
+})();
+</script>
+</body>
+</html>

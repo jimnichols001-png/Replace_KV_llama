@@ -31,7 +31,7 @@ if [[ -z "$PY" ]]; then
     exit 1
 fi
 
-CACHE="$ROOT/llama32-1B-fp16"
+CACHE="$ROOT/llama32-1B-Instruct-bf16"
 SCRIPT="$ROOT/tests/demo_turns.json"
 PROBE="$ROOT/phase2_poincare_probe.py"
 

@@ -1,5 +1,6 @@
 # model weights (2.4 GB) — never committed
 llama32-1B-fp16/
+llama32-1B-Instruct-bf16/
 
 # python
 __pycache__/
@@ -7,3 +8,4 @@ __pycache__/
 
 # transient diagnostic artifacts
 logs/scratch/
+logs/server_*.jsonl

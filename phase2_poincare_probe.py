@@ -184,23 +184,87 @@ class DepthProbe:
 
     # ------------------------------------------------------------ per turn
     def run_turn(self, messages, gen_kwargs):
-        """Apply the chat template, generate (real KV cache), and return
-        (reply_text, {str(L): layer_summary})."""
+        """Render the Llama-3 chat template, generate with explicit Llama-3
+        stop tokens, and return (reply_text, {str(L): layer_summary}).
+
+        gen_kwargs may carry (both optional):
+            stop_token_ids  extra token ids that end generation (default
+                            Llama-3: [128001 <|end_of_text|>,
+                            128009 <|eot_id|>])
+            stop_strings    extra text markers that terminate the reply
+                            (default Llama-3: ["<|eot_id|>",
+                            "<|end_of_text|>", "<|start_header_id|>"])
+
+        Every other key is forwarded verbatim to model.generate(); the
+        caller's dict is never mutated.  The generated token stream is
+        clamped at the earliest COMPLETE stop marker, so a partial marker at
+        the max-length boundary is also dropped and no raw header/template
+        tokens ever leak into the returned text."""
         for k in self.captured:
             self.captured[k].clear()
-        inp = self.tokenizer.apply_chat_template(
-            messages, tokenize=True, return_dict=True,
-            add_generation_prompt=True)
-        ids = torch.tensor(inp["input_ids"], device=self.device).unsqueeze(0)
+
+        kw = dict(gen_kwargs)                      # never touch the caller
+        stop_token_ids = [int(x) for x in kw.pop("stop_token_ids", [])]
+        if not stop_token_ids:
+            stop_token_ids = [128001, 128009]      # <|end_of_text|>, <|eot_id|>
+        stop_strings = list(kw.pop("stop_strings", []))
+        if not stop_strings:
+            stop_strings = ["<|eot_id|>", "<|end_of_text|>",
+                            "<|start_header_id|>"]
+
+        # Stock Llama-3.2-Instruct chat template rendered to *text* first, then
+        # tokenized, so the system/user/assistant framing matches the official
+        # template exactly (add_generation_prompt=True appends the assistant
+        # header so generation begins cleanly).
+        prompt = self.tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True)
+        enc = self.tokenizer(prompt, return_tensors="pt")
+        ids = enc["input_ids"].to(self.device)
+        if enc.get("attention_mask") is not None:
+            kw["attention_mask"] = enc["attention_mask"].to(self.device)
+
+        # Hard stop-token ids (Llama-3) -- union of our defaults and any the
+        # caller explicitly set -- so the decoder halts at <|eot_id|> and can
+        # never roll into a new <|start_header_id|> header.
+        user_eos = kw.pop("eos_token_id", None)
+        merged_eos = list(stop_token_ids)
+        if user_eos is not None:
+            if isinstance(user_eos, int):
+                user_eos = [user_eos]
+            merged_eos.extend(int(x) for x in user_eos)
+        kw["eos_token_id"] = list(dict.fromkeys(merged_eos))
+        kw.setdefault("pad_token_id",
+                      int(self.tokenizer.pad_token_id or 128004))
+
         with torch.no_grad():
-            out = self.model.generate(
-                ids, use_cache=True,
-                pad_token_id=int(self.tokenizer.pad_token_id or 128004),
-                **gen_kwargs)
-        new_ids = out[0][ids.shape[1]:]
+            out = self.model.generate(ids, use_cache=True, **kw)
+        new_ids = out[0][ids.shape[1]:]                    # generated tokens
+        new_ids = self._clamp_at_stop(new_ids, stop_strings)
         reply = self.tokenizer.decode(new_ids, skip_special_tokens=True)
         summary = self._summarise_capture(ids.shape[1], len(new_ids))
         return reply, summary
+
+    def _clamp_at_stop(self, ids, stop_strings):
+        """Truncate generated token-ids at the earliest complete stop marker.
+
+        Matching is done on the raw token stream (not on decoded text), so a
+        marker split by the max-length boundary is also removed.  Returns ids
+        unchanged when nothing matches."""
+        if ids.dim() == 2:
+            ids = ids[0]
+        n = ids.shape[0]
+        cut = n
+        for marker in stop_strings:
+            mt = self.tokenizer.encode(marker, add_special_tokens=False)
+            k = len(mt)
+            if not k or k > n:
+                continue
+            t = torch.as_tensor(mt, device=ids.device)
+            for s in range(n - k + 1):
+                if torch.equal(ids[s:s + k], t):
+                    cut = min(cut, s)
+                    break
+        return ids[:cut] if cut < n else ids
 
     def _summarise_capture(self, n_prompt, n_gen):
         """Turn hook brams into per-layer snapshots + radius stats."""
